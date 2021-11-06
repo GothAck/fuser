@@ -1014,3 +1014,24 @@ pub fn spawn_mount<'a, FS: Filesystem + Send + 'static + 'a, P: AsRef<Path>>(
     let options = options.ok_or(ErrorKind::InvalidData)?;
     Session::new(filesystem, mountpoint.as_ref(), options.as_ref()).and_then(|se| se.spawn())
 }
+
+/// Mount the given filesystem to the given mountpoint. This function spawns
+/// a background thread to handle filesystem operations while being mounted
+/// and therefore returns immediately. The returned handle should be stored
+/// to reference the mounted filesystem. If it's dropped, the filesystem will
+/// be unmounted.
+///
+/// NOTE: This will eventually replace spawn_mount(), once the API is stable
+///
+/// # Safety
+///
+/// This interface is inherently unsafe if the BackgroundSession is allowed to leak without being
+/// dropped. See rust-lang/rust#24292 for more details.
+pub fn spawn_mount2<'a, FS: Filesystem + Send + 'static + 'a, P: AsRef<Path>>(
+    filesystem: FS,
+    mountpoint: P,
+    options: &[MountOption],
+) -> io::Result<BackgroundSession> {
+    check_option_conflicts(options)?;
+    Session::new(filesystem, mountpoint.as_ref(), options.as_ref()).and_then(|se| se.spawn())
+}
